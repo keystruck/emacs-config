@@ -169,9 +169,7 @@ See [[https://codeberg.org/ashton314/nordic-night]]
     (load-theme 'nordic-midnight t))
 #+end_src
 
-*** Theme Development
-
-Miscellaneous packages supporting theme development.
+Note also miscellaneous packages supporting theme development.
 
 #+begin_src emacs-lisp
   (use-package rainbow-mode
