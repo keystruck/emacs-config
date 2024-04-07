@@ -1,0 +1,790 @@
+#+title:     Dave's Magnificent Emacs.org File
+#+filename:  emacs.org
+#+revision:  2024-04-07
+#+startup:   content
+
+
+*Dave's Magnificent Emacs.org File*
+
+* Executive Summary
+
+** Definitions
+
+Identify this file by name so we can refer to it below:
+
+#+begin_src emacs-lisp
+  (defvar emacs-org-file (locate-user-emacs-file "emacs.org"))
+#+end_src
+
+Define some global variables to hold miscellaneous settings.
+
+"Ghostwriter Code" is the name of a personal customized font family designed and generated using the Iosevka customizer ([[https://typeof.net/Iosevka/customizer]]).  It comes in two widths.  The narrower "Condensed" variant is more suitable for coding on space-constrained screens while the looser normal-width variant makes for more comfortable reading and composition on wider screens.
+
+#+begin_src emacs-lisp
+  (defvar gw-default-width 80 "Default editor text width in columns")
+  (defvar gw-expanded-width 96 "Expanded text width for extra screen room")
+  (defvar gw-code-family "Ghostwriter Code Condensed" "Default font for code editing")
+  (defvar gw-text-family "Ghostwriter Code" "Default font for text and prose editing")
+#+end_src
+
+** Utility Mappings
+
+Quick-find (~F9~) and quick-load (~F10~) ~emacs.org~ in org mode:
+
+#+begin_src emacs-lisp
+    (global-set-key (kbd "<f9>")
+		    #'(lambda ()
+		       (interactive)
+		       (find-file emacs-org-file)
+		       (olivetti-mode)
+		       (olivetti-set-width gw-expanded-width)))
+    (global-set-key (kbd "<f10>")
+		    #'(lambda () (interactive) (org-babel-load-file emacs-org-file)))
+#+end_src
+
+
+* Appearance
+
+** Simplified UI
+
+I prefer a clean, decoration-free layout that maximizes working space.  To set more spacious margins, look at the ~spacious-padding~ package.
+
+#+begin_src emacs-lisp
+  (setq ns-auto-hide-menu-bar 1)
+  (tool-bar-mode -1)
+  (menu-bar-mode -1)
+  (scroll-bar-mode -1)
+  (setq-default fill-column gw-default-width)
+#+end_src
+
+** Font
+
+#+begin_src emacs-lisp
+  (set-face-attribute
+    'default nil
+    :family gw-code-family
+    :weight 'light
+    :height 200)
+#+end_src
+
+** Start-up Behavior
+
+Maximize window on launch and dispense with startup splash screen, defaulting to the scratch buffer with a custom message.
+
+#+begin_src emacs-lisp
+  (add-to-list 'initial-frame-alist '(fullscreen . maximized))
+  (setq inhibit-startup-message t
+	initial-scratch-message
+	";; Just what do you think you're doing, Dave?\n\n")
+#+end_src
+
+** Miscellaneous Behavior
+
+Auto-refresh buffers when they change on disk.
+
+#+begin_src emacs-lisp
+  (global-auto-revert-mode t)
+#+end_src
+
+Allow cut-and-copy to use system clipboard.
+
+#+begin_src emacs-lisp
+  (setq x-select-enable-clipboard t)
+#+end_src
+
+When a region is active, inserted text overwrites instead of appending to it (the default behavior).
+
+#+begin_src emacs-lisp
+  (delete-selection-mode t)
+#+end_src
+
+Some line-wrapping settings:  set the wrapping column, show the line and column number in the mode line, and prevent words from being broken in the middle.
+
+Notes:
+ * ~visual-fill-column-mode~ toggles soft wrapping.
+ * ~set-fill-column~ (~C-x f~) sets the wrap column interactively.
+
+#+begin_src emacs-lisp
+  (column-number-mode t)
+  (global-visual-line-mode t)
+#+end_src
+
+
+
+#+begin_src emacs-lisp
+  ;; https://www.emacswiki.org/emacs/LineNumbers
+  (add-hook 'prog-mode-hook 'display-line-numbers-mode)
+
+  ;; Allow single space to end sentences
+  (setq sentence-end-double-space nil)
+
+  ;; (setq default-major-mode 'text-mode)
+#+end_src
+
+
+* Package Management
+
+** ~Use-Package~
+
+Some basic ~use-package~ settings.  ~use-package-always-ensure~ ensures the installation of every package declared as if ~:ensure t~ had been stated explicitly. ~use-package-expand-minimally~ disables error reporting during expansion of declarations.
+
+See [[https://github.com/jwiegley/use-package]]
+
+#+begin_src emacs-lisp
+  (eval-and-compile
+    (setq use-package-always-ensure t
+	  use-package-expand-minimally t))
+#+end_src
+
+** Package Configuration
+
+*** Theme: ~nordic-night~
+
+A clean, medium-contrast dark theme.
+
+See [[https://codeberg.org/ashton314/nordic-night]]
+
+#+begin_src emacs-lisp
+  (use-package nordic-night-theme
+    :config
+    (load-theme 'nordic-midnight t))
+#+end_src
+
+*** Theme Development
+
+Miscellaneous packages supporting theme development.
+
+#+begin_src emacs-lisp
+  (use-package rainbow-mode
+    :hook (prog-mode))		        ; colorize color names in buffer
+  ;; (use-package autothemer)		; easier theme definitions
+  ;; (use-package kurecolor)              ; color tools
+#+end_src
+
+*** ~spacious-padding~
+
+Customize paddings and margins of emacs frames and windows.
+
+See [[https://github.com/protesilaos/spacious-padding]]
+
+#+begin_src emacs-lisp
+  (use-package spacious-padding
+    :config
+    (setq spacious-paddings-widths
+	  '(:internal-border-width 20 :right-divider-width 30))
+    (spacious-padding-mode t))
+#+end_src
+
+*** ~ivy/counsel/swiper~
+
+Completion assistance.
+
+See [[https://github.com/abo-abo/swiper]]
+
+#+begin_src emacs-lisp
+  (use-package ivy 
+    :config
+    (ivy-mode t)
+    (counsel-mode t)
+    (setq ivy-use-virtual-buffers t))
+  (use-package swiper)
+#+end_src
+
+*** ~which-key~
+
+Display possible key completions.
+
+See [[https://github.com/justbur/emacs-which-key]]
+
+#+begin_src emacs-lisp
+  (use-package which-key  
+    :config (which-key-mode t))
+#+end_src
+
+*** ~avy~ and ~avy-zap~
+
+Jump directly to visible text using a char-based decision tree, similar to ~leap.vim~.  Indispensable for efficient navigation.
+
+See [[https://github.com/abo-abo/avy]]
+
+#+begin_src emacs-lisp
+  (use-package avy
+    :bind
+    ("C-/"     . avy-goto-char-in-visual-line)
+    ("C-s"     . avy-goto-char-timer))  	; specify word by first char
+  ;;   ("C-M-/"   . avy-goto-char-2))	; arbitrary string
+  ;; ;
+					  ;   ("s-a"     . avy-isearch))		; use avy tree in isearch-mode
+
+  (use-package avy-zap
+    :bind
+    ("M-z"     . avy-zap-up-to-char)	; up to but not including (multiline)
+    ("M-Z"     . avy-zap-to-char))	; up to and including
+#+end_src
+
+*** ~org~
+
+Some basic configuration and Dvorak-friendly keybindings.  ~C-c C-t~ is bound to ~C-c C-x~ further down in the file.
+
+#+begin_src emacs-lisp
+  (use-package org
+    :bind
+    ("C-c C-r" . org-previous-visible-heading)
+    ("C-c C-g" . outline-up-heading))
+    ;; ("C-c h"   . org-mark-element)
+#+end_src
+
+*** ~olivetti~ and ~writeroom-mode~
+
+Centered distraction-free writing modes.  ~olivetti~ is window-specific so can be used in multi-window frames, while ~writeroom-mode~ monopolizes the entire frame.
+
+See [[https://github.com/rnkn/olivetti]]
+See [[https://github.com/joostkremers/writeroom-mode]]
+
+#+begin_src emacs-lisp
+  (use-package olivetti
+    :config (setq olivetti-set-width gw-expanded-width))
+  (use-package writeroom-mode)
+#+end_src
+
+*** ~hydra~
+
+Sticky keybindings.
+
+See [[https://github.com/abo-abo/hydra]].
+
+#+begin_src emacs-lisp
+  (use-package hydra)
+#+end_src
+
+*** ~smartparens~ and ~rainbow-delimiters~
+
+~smartparens-mode~ offers pair-matching, traversal and editing, very useful for lisp editing but also useful for general coding.  ~rainbow-delimiters~ colorizes delimiter pairs making them easier to match visually.
+
+See [[https://github.com/Fuco1/smartparens]]
+See [[https://github.com/Fanael/rainbow-delimiters]]
+
+#+begin_src emacs-lisp
+  (use-package smartparens-mode
+    :ensure smartparens
+    :hook (prog-mode slime-repl-mode org-mode)
+    :init
+    (require 'smartparens-config))	; <= doesn't load under :config (advised in README)
+
+  (use-package rainbow-delimiters
+    :hook (prog-mode . rainbow-delimiters-mode))
+#+end_src
+
+*** ~wc-mode~
+
+#+begin_src emacs-lisp
+  (use-package wc-mode
+    :config (wc-mode t))
+  ;; C-c C-w c shows current lines, words, chars
+#+end_src
+
+*** ~slime~
+
+#+begin_src emacs-lisp
+  (use-package slime
+    :init
+    (setq inferior-lisp-program "sbcl"))
+#+end_src
+
+
+* Keybindings
+** Dvorak-friendly Rebindings
+
+Make ~C-t~ a synonym for prefix ~C-x~ in frequently-used modes.
+
+#+begin_src emacs-lisp
+  (global-set-key (kbd "C-t") (keymap-lookup global-map "C-x"))
+  (define-key org-mode-map (kbd "C-c C-t") (keymap-lookup org-mode-map "C-c C-x"))
+#+end_src
+
+Translate ~C-r~ to ~C-n~ everywhere so that ~next-line~ and ~previous-line~ both use right ring finger.
+
+#+begin_src emacs-lisp
+  (define-key key-translation-map (kbd "C-r") (kbd "C-p"))
+#+end_src
+
+** Custom Keymaps
+
+Define custom keymap ~gw-custom-map~, invoked with the prefix ~C-s-t~, available for personal bindings:
+
+#+begin_src emacs-lisp
+  (defvar gw-custom-map (make-sparse-keymap) "Custom prefix keymap")
+  (global-set-key (kbd "C-s-t") gw-custom-map)
+#+end_src
+
+Define custom keymap ~gw-smartparens-sub-map~, invoked with ~C-M-t~ in ~smartparens-mode~, used for ~smartparens-mode~-specific subcommands:
+
+#+begin_src emacs-lisp
+  (defvar gw-smartparens-sub-map (make-sparse-keymap)
+    "Custom sub-map for smartparens-mode")
+  (define-key smartparens-mode-map (kbd "C-M-t") gw-smartparens-sub-map)
+#+end_src
+
+See [[https://www.masteringemacs.org/article/mastering-key-bindings-emacs]].
+
+** Miscellaneous Bindings
+
+#+begin_src emacs-lisp
+  (bind-keys
+   ("s-h"     . help-command)
+   ("C-x C-m" . execute-extended-command)	; also M-x
+   ("C-x C-v" . eval-expression)		; also M-:
+
+   ;; buffer operations
+   ("C-<tab>" . bury-buffer)
+
+   ;; window commands
+   ("M-o"     . other-window)		; also C-x o
+   ("s-l"     . reposition-window)	; frees C-M-l
+
+   ;; scroll (move text)
+   ("M-n"     . gw-scroll-half-up)
+   ("M-r"     . gw-scroll-half-down)
+   ("s-r"     . scroll-up-line)
+   ("s-n"     . scroll-down-line)
+   ("M-s-r"   . scroll-other-window)
+   ("M-s-n"   . scroll-other-window-down)
+
+   ;; search and replace
+   ("M-s-s"   . query-replace-regexp)
+   ;; Note: C-M-s and C-M-r invoke forward and backward regexp search
+
+   ;; jump: move point/cursor
+   ("M-s-a"   . beginning-of-buffer)
+   ("M-s-e"   . end-of-buffer)
+
+   ;; line operations
+   ("C-M-o"   . open-line-before)	; was split-line
+   ("C-M-;"   . comment-line)
+   ("C-a"     . backward-logical-line)
+   ("C-e"     . forward-logical-line)
+   ("C-k"     . kill-visual-line*)	; custom function
+
+   ;; word operations
+   ("C-w"     . backward-kill-word)
+   ("M-w"     . mark-word)	        ; was kill-ring-save
+
+   ;; character operations
+   ("C-d" . delete-backward-char)
+   ("C-h" . delete-char)
+
+   ;; region operations
+   ("s-c"     . kill-ring-save)
+   ("C-x C-k" . kill-region)
+
+   ;; undo-redo
+   ("C-z"     . undo)			; not minimize
+   ("C-M-z"   . undo-redo)
+   ("s-Z"     . undo-redo)		; super-shift-z
+   )
+#+end_src
+
+** ~hydra-grasshopper~ Bindings
+
+#+begin_src emacs-lisp
+  (defhydra hydra-grasshopper (global-map "M-g")
+    "Single-key motions"
+
+    ("?" ignore "show menu")
+    ("SPC" nil "exit" :exit t)
+
+    ("v" next-line "next line")
+    ("r" previous-line "previous line")
+    ("n" forward-char "next char")
+    ("d" backward-char "prev char")
+    ("w" forward-word "next word")
+    ("b" backward-word "previous word")
+    ("$" end-of-visual-line "end of line")
+    ("^" beginning-of-visual-line "end of line")
+    ("e" forward-sentence "next sentence")
+    ("a" backward-sentence "prev sentence")
+    ("]" forward-paragraph "next para")
+    ("[" backward-paragraph "prev para")
+    ;; avy-tree jumping: char jumps are precision jumps, so exit
+    ("/" avy-goto-char-timer "jump to char sequence" :exit t)
+    ("t" avy-goto-char-in-visual-line "jump to char in line" :exit t)
+    ;; ("T" avy-goto-char-in-sentence "jump to char in sentence" :exit t)
+    ("g" avy-goto-line "jump to line")
+    ("c" copy-region-as-kill "copy")
+    ;; mark manipulation
+    ("m" set-mark-command "set mark")	; toggles activation
+    ("M-a" (lambda () (interactive) (push-mark) (backward-sentence) (activate-mark)) "mark to sentence start")
+    ("M-e" mark-end-of-sentence "mark sentence end")
+    ("M" pop-to-mark-command "pop mark")
+    ("x" exchange-point-and-mark "exchange point/mark")
+    ("M-w" mark-word "mark word")
+    ("M-s" mark-whole-sentence "mark sentence")
+    ("M-x" mark-sexp "mark sexp")		; a word is a sexp too
+    ("M-p" mark-paragraph "mark para")
+    ;; scroll commands
+    ("s-n" scroll-down-line "scroll down")
+    ("s-r" scroll-up-line "scroll up")
+    ("C-M-n" scroll-other-window-down "scroll other window")
+    ("C-M-r" scroll-other-window-up "scroll other window down")
+    )
+#+end_src
+
+** ~hydra-smartparens~ Bindings
+
+#+begin_src emacs-lisp
+  (defhydra hydra-smartparens (global-map "M-s-g")
+    "Smartparens commands"
+
+    ("SPC" nil "exit" :exit)
+    ("?" ignore "show menu")
+
+    ;; Commands that do not modify the buffer - generally single-key
+    ("a" sp-beginning-of-sexp "beginning")
+    ("e" sp-end-of-sexp "end")
+    ("d" sp-backward-down-sexp "back in")
+    ("u" sp-backward-up-sexp "back out")
+    ("i" sp-down-sexp "into")
+    ("o" sp-up-sexp "out of")
+    ("r" sp-previous-sexp "previous")
+    ("N" sp-next-sexp "next")
+    ("f" sp-forward-sexp "forward")
+    ("b" sp-backward-sexp "backward")
+    ("m" sp-mark-sexp "mark")
+    ("x" exchange-point-and-mark)
+    ("c" sp-copy-sexp "copy")
+    ("s-n" scroll-down-line "scroll down")
+    ("s-r" scroll-up-line "scroll up")
+    ("C-M-n" scroll-other-window "scroll other window")
+    ("C-M-r" scroll-other-window-down "scroll other window down")
+
+    ;; Commands that do modify the buffer - generally key combination
+    ("C-y" yank "yank")
+    ("C-t" sp-transpose-sexp "transpose sexp")
+    ("=" sp-unwrap-sexp "unwrap")
+    ("*" sp-forward-slurp-sexp "slurp forward")
+    ("&" sp-backward-slurp-sexp "slurp backward")
+    ("$" sp-forward-barf-sexp "barf forward")
+    ("^" sp-backward-barf-sexp "barf backward")
+    ("M-TAB" indent-for-tab-command "indent")
+    ("RET" newline "new line")
+    ("!" eval-last-sexp "evaluate" :exit t))
+
+#+end_src
+
+# End of emacs.org
+
+
+* Custom Functions
+** ~backward-logical-line~ and ~forward-logical-line~
+
+#+begin_src emacs-lisp
+  (defun backward-logical-line (&optional COUNT)
+    "Move to the beginning of the current logical line. If already at the beginning of the line, move to previous logical line.
+
+With prefix COUNT not zero or one, move up COUNT-1 lines first."
+    (interactive "p")
+    (let ((visual-line-mode nil)
+	  (orig-point (point)))
+      (previous-line (- COUNT 1))
+      (move-beginning-of-line 1)
+      (when (= (point) orig-point)
+	(previous-line)
+	(move-beginning-of-line 1))))
+
+  (defun forward-logical-line (&optional COUNT)
+    "Move to the end of the current logical line. If already at the end of the line, move to next logical line.
+
+With prefix COUNT not zero or one, jump forward COUNT-1 lines first."
+    (interactive "p")
+    (let ((visual-line-mode nil)
+	  (orig-point (point)))
+      (end-of-line COUNT)
+      (when (= (point) orig-point)
+	(next-logical-line)
+	(end-of-line))))
+#+end_src
+
+** ~open-line-before~
+
+#+begin_src emacs-lisp
+  (defun open-line-before (&optional COUNT)
+  "Open a blank line immediately above the current line, then move to beginning of the new line.
+
+Given a numeric prefix COUNT not zero or one, open COUNT-1 blank lines above the current line, then move to the beginning of the last blank line."
+    (interactive "p")
+    (let ((line-move-visual nil))
+      (beginning-of-line)
+      (newline-and-indent COUNT)
+      (previous-line)))
+#+end_src
+
+** ~mark-whole-sentence~
+
+#+begin_src emacs-lisp
+  (defun mark-whole-sentence (&optional COUNT)
+    "Mark current sentence, leaving point immediately before the first non-space
+  character of the sentence.  If point is between sentences, mark the following
+  sentence.  If a region is active, extend the region to include both the current
+  and the following sentence, leaving point at the beginning of the region.
+
+  With a positive parameter COUNT, mark or extend the region forward by COUNT
+  sentences."
+    (interactive "p")			; COUNT defaults to 1
+    (unless (> COUNT 0) (error "Expected positive argument, found '%d'" COUNT))
+    (if (eobp) (error "End of buffer"))
+    ;; find and mark beginning of sentence
+    (forward-sentence)
+    (backward-sentence)
+    (unless (region-active-p) (push-mark))
+    ;; ensure point follows mark
+    (if (and (region-active-p) (> (mark) (point)))
+	(call-interactively #'exchange-point-and-mark))
+    ;; extend region, leaving point at the beginning
+    (let ((c 0))
+      (while (and (not (eobp)) (< c COUNT))
+	(forward-sentence)
+	(setq c (1+ c))))
+    (if (< (mark) (point)) (call-interactively #'exchange-point-and-mark))
+    (activate-mark))
+  #+end_src
+
+** ~avy-goto-char-in-sentence~
+
+Use ~avy~ jump functionality to jump to a specified character in the current or surrounding sentences.  Intended for use in prose documents.
+
+#+begin_src emacs-lisp
+    (defun avy-goto-char-in-sentence (CHAR &optional COUNT)
+      "Jump to specified character in current context.
+
+  \"Current context\" means the current sentence, or if point is between sentences, both sentences, subject to buffer boundaries.
+
+  If a non-zero parameter COUNT is provided, expand the jump context to include the COUNT sentences immediately preceding and following the default context above.
+
+  Dependency:  package 'avy'."
+    (interactive (list (read-char "Char: " t) current-prefix-arg))
+    (require 'avy)
+    (let* ((context (abs (prefix-numeric-value COUNT)))
+	   (region-begin
+	    (let ((c 0))
+	      (save-excursion
+		(while (and (not (bobp)) (< c context))
+		  (backward-sentence)
+		  (setq c (1+ c)))
+		(point))))
+	   (region-end
+	    (let ((c 0))
+	      (save-excursion
+		(while (and (not (eobp)) (< c context))
+		  (forward-sentence)
+		  (setq c (1+ c)))
+		(point)))))
+      (push-mark)
+      (avy-with avy-goto-char
+	(avy-jump
+	 (regexp-quote (string CHAR))
+	 :beg region-begin
+	 :end region-end))))
+#+end_src
+
+** ~avy-goto-char-in-visual-line~
+
+#+begin_src emacs-lisp
+    (defun avy-goto-char-in-visual-line (CHAR &optional OFFSET)
+      "Jump to arbitrary character CHAR in the current visual line using the avy jump tree.
+
+  Given a negative prefix OFFSET, restrict the seek/jump range to the immediately preceding line. Given a positive prefix OFFSET, limit the range to the immediately following line. Only the sign of the prefix matters, not the magnitude.
+
+  Compare this function with avy-goto-char-in-line, which jumps only within the current logical (not visual) line and does not allow the user to expand the jump range."	
+      (interactive (list (read-char "Char: " t) current-prefix-arg))
+      (require 'avy)
+      (setq OFFSET (or OFFSET 0))
+      (let* ((offset (cond ((> (prefix-numeric-value OFFSET) 0) 1)
+			   ((< (prefix-numeric-value OFFSET) 0) -1)
+			   (t 0)))
+	     (visual-line-mode t)
+	     (region-begin
+	      (save-excursion
+		(beginning-of-visual-line (1+ offset))
+		(point)))
+	     (region-end
+	      (save-excursion
+		(end-of-visual-line (1+ offset))
+		(point))))
+	(push-mark)
+	(avy-with avy-goto-char
+	  (avy-jump
+	   (regexp-quote (string CHAR))
+	   :beg region-begin
+	   :end region-end))))
+#+end_src
+
+** ~kill-visual-line*~
+
+#+begin_src emacs-lisp
+  (defun kill-visual-line* (&optional N START END)
+    "Kill from point through the end of the current visual line.
+
+Given a positive numeric prefix N, kill N lines including the current line.  If N is negative, kill N lines preceeding the current line.
+
+If a region is currently active, kill the region instead."
+    (interactive (if (use-region-p)
+		     (list nil (region-beginning) (region-end))
+		   (list (prefix-numeric-value current-prefix-arg))))
+    (if (use-region-p)
+	(kill-region START END)
+      ;; if not called interactively, kill-line  kills entire line including newline
+      (call-interactively 'kill-line N)))
+#+end_src
+
+** ~kill-word*~
+
+#+begin_src emacs-lisp
+  (defun kill-word* (&optional N START END)
+    "Kill from point through the end of the current word.
+
+Given a numeric prefix N, kill through the end of the current word and N-1 additional words after the current word.
+
+If a region is currently active, kill the region instead."
+    (interactive (if (use-region-p)
+		     (list nil (region-beginning) (region-end))
+		   (list (prefix-numeric-value current-prefix-arg))))
+    (if (use-region-p)
+	(kill-region START END)
+      (kill-word N)))
+#+end_src
+
+** ~gw-scroll-half-down~ and ~gw-scroll-half-up~
+
+These two functions scroll by half-screen instead of full-screen increments.
+
+#+begin_src emacs-lisp
+  (defun gw-scroll-half-down (&optional LINES)
+    "Given a prefix argument, scroll text down that many lines, otherwise scroll down one-half screen."
+    (interactive "P")			; upper case P = raw prefix arg
+    (if LINES
+	(scroll-down (prefix-numeric-value LINES)) ; returns numeric value of raw prefix
+      (scroll-down (/ (window-body-height) 2))))
+
+  (defun gw-scroll-half-up (LINES)
+    "If given a prefix argument, scroll text up that many lines, otherwise scroll up one-half screen."
+    (interactive "P")			; upper case P = raw prefix arg
+    (if LINES
+	(scroll-up (prefix-numeric-value LINES))
+      (scroll-up (/ (window-body-height) 2))))
+#+end_src
+
+** ~gw-set-buffer-font-family~ and ~gw-get-buffer-font-family~
+
+The following function sets a default font family for the current buffer only, not the entire frame.
+
+#+begin_src emacs-lisp
+  (defun gw-set-buffer-font-family (font)
+    "Sets a default font for the current buffer."
+    (interactive "sFont: ")
+    (if (member font (font-family-list))
+	(face-remap-add-relative 'default :family font)
+      (message
+       "'%s' is not a recognized font family. Check spelling and capitalization."
+       font)))
+
+  (defun gw-get-buffer-font-family ()
+    "Shows and returns default font family in current buffer."
+    (interactive)
+    (let ((font (face-attribute 'default :family)))
+      (message "%s" font)
+      font))
+#+end_src
+
+** ~gw-prose-mode~
+
+#+begin_src emacs-lisp
+  (defun gw-prose-mode ()
+    "Set buffer up for prose composition."
+    (interactive)
+    (org-mode)
+    (olivetti-mode)
+    (olivetti-set-width gw-expanded-width)
+    (gw-set-buffer-font-family gw-text-family)
+    (wc-mode t))
+#+end_src
+
+** Smarter isearch
+
+By default, exiting a successful forward isearch leaves the cursor at the end of the search string inside the match.  These two functions leave the cursor at the beginning of the match instead.
+
+See [[https://www.emacswiki.org/emacs/IncrementalSearch]].
+
+Note: this appears to break avy-isearch, at least when searching forward.
+
+# TODO: refactor to keep this from breaking avy-isearch
+
+#+begin_src emacs-lisp
+  (defun gw-goto-isearch-match-beginning ()
+    (when (and isearch-forward isearch-other-end)
+      (goto-char isearch-other-end)))
+  (add-hook 'isearch-mode-end-hook 'gw-goto-isearch-match-beginning)
+
+  (defadvice isearch-exit (after gw-goto-isearch-match-beginning activate)
+    "Go to beginning of isearch match."
+    (when (and isearch-forward isearch-other-end)
+      (goto-char isearch-other-end)))
+#+end_src
+
+
+* Experimental Settings
+
+** ~smartparens~ Key Bindings
+
+#+begin_comment
+#+begin_src emacs-lisp
+  (bind-keys
+   :map smartparens-mode-map
+
+   ("C-M-a"   . sp-beginning-of-sexp)
+   ("C-M-e"   . sp-end-of-sexp)
+
+   ("C-M-d"   . sp-backward-down-sexp)
+   ("C-M-s"   . sp-down-sexp)
+   ("C-M-g"   . sp-backward-up-sexp)
+   ("C-M-l"   . sp-up-sexp)
+
+   ("C-M-n"   . sp-next-sexp)
+   ("C-M-r"   . sp-previous-sexp)		; conflicts with backward-isearch-regexp
+
+   ;; Stock bindings, no need to expressly rebind
+   ("C-M-f"   . sp-forward-sexp)
+   ("C-M-b"   . sp-backward-sexp)
+
+   ("C-M-h"   . sp-mark-sexp)
+   ("C-M-w"   . sp-copy-sexp)
+
+   ("M-f"     . sp-forward-symbol)
+   ("M-b"     . sp-backward-symbol)
+
+   ("C-M-="   . sp-unwrap-sexp)	        ; next or current sexp
+   ("C-M-<backspace>"   . sp-kill-sexp)   ; kill next or current
+
+
+   :map gw-smartparens-sub-map		; invoke with C-M-t
+   ("C-M-t"   . sp-transpose-sexp)	; shadowed command
+
+   ;; slurps and barfs
+   ("C-M-s"   . sp-forward-slurp-sexp)
+   ("C-M-n"   . sp-forward-barf-sexp)
+   ("C-M-d"   . sp-backward-slurp-sexp)
+   ("C-M-h"   . sp-backward-barf-sexp)
+
+   ;; end of smartparens bindings
+   )
+#+end_src
+#+end_comment
+
+** External Files
+
+#+begin_comment
+#+begin_src emacs-lisp
+  (defvar experimental-settings-file "experimental.el")
+  (load (locate-user-emacs-file experimental-settings-file) 'noerror)
+#+end_src
+#+end_comment
+n
