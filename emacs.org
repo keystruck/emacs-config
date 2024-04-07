@@ -21,10 +21,10 @@ Define some global variables to hold miscellaneous settings.
 "Ghostwriter Code" is the name of a personal customized font family designed and generated using the Iosevka customizer ([[https://typeof.net/Iosevka/customizer]]).  It comes in two widths.  The narrower "Condensed" variant is more suitable for coding on space-constrained screens while the looser normal-width variant makes for more comfortable reading and composition on wider screens.
 
 #+begin_src emacs-lisp
-  (defvar gw-default-width 80 "Default editor text width in columns")
-  (defvar gw-expanded-width 96 "Expanded text width for extra screen room")
-  (defvar gw-code-family "Ghostwriter Code Condensed" "Default font for code editing")
-  (defvar gw-text-family "Ghostwriter Code" "Default font for text and prose editing")
+  (defvar gw-default-width 80
+    "Default editor text width in columns")
+  (defvar gw-expanded-width 96
+    "Expanded text width for extra screen room")
 #+end_src
 
 ** Utility Mappings
@@ -57,14 +57,33 @@ I prefer a clean, decoration-free layout that maximizes working space.  To set m
   (setq-default fill-column gw-default-width)
 #+end_src
 
-** Font
+** Fonts
+
+See https://emacs.stackexchange.com/questions/49027/how-do-i-set-up-all-the-fonts-in-my-gui-emacs.
+
+Custom functions that define and display buffer-specific fonts are defined below.
 
 #+begin_src emacs-lisp
+  (defvar gw-code-family "Ghostwriter Code Condensed"
+    "Default coding font family")
+  (defvar gw-text-family "Ghostwriter Code"
+    "Default text and prose font family")
+  (defvar gw-monospaced-family "Ghostwriter Type Condensed"
+    "Default fixed-pitch font family")
+
   (set-face-attribute
     'default nil
     :family gw-code-family
     :weight 'light
     :height 200)
+
+  (set-face-attribute
+   'fixed-pitch nil
+   :family gw-code-family)
+
+  (set-face-attribute
+   'variable-pitch nil
+   :family gw-text-family)
 #+end_src
 
 ** Start-up Behavior
