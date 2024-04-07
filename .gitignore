@@ -1,0 +1,20 @@
+# Help with .gitignore syntax: https://www.atlassian.com/git/tutorials/saving-changes/gitignore
+
+# OS files
+**/.DS_Store
+
+# emacs internal files
+**/\#*\#
+**/*~
+/auto-save-list/
+/elisp-autofmt-cache/
+/elpa/**
+/emacs.org_archive
+/recentf
+
+# emacs generated files
+/custom.el
+/emacs.el
+
+# user files
+/save/
