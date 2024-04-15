@@ -142,6 +142,18 @@ Notes:
 
 
 * Package Management
+** Basic
+
+See https://emacs.stackexchange.com/questions/72204/symbols-function-definition-is-void-package-install-selected-packages
+
+#+begin_src emacs-lisp
+  (require 'package)
+  (package-initialize)
+  (add-to-list 'package-archives
+	       '("melpa" . "https://melpa.org/packages/"))
+  (unless package-archive-contents
+    (package-refresh-contents))
+#+end_src
 
 ** ~Use-Package~
 
